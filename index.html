@@ -198,6 +198,7 @@ header{flex-wrap:wrap}
   <input id="lp2" type="password" placeholder="Repite la contraseña" autocomplete="new-password">
   <div id="lmsg"></div>
   <button class="save" id="lgo">Entrar</button>
+  <button class="sb" id="lbio" style="display:none;margin-top:10px">👆 Entrar con huella</button>
   <button class="link" id="lforgot">Olvidé mi contraseña</button>
 </div></div>
 
@@ -208,6 +209,8 @@ header{flex-wrap:wrap}
   <input class="sinp" id="cp0" type="password" placeholder="Contraseña actual" autocomplete="off">
   <input class="sinp" id="cp1" type="password" placeholder="Nueva contraseña (mín. 4)" autocomplete="off">
   <button class="sb" id="cpgo">Cambiar contraseña</button>
+  <button class="sb" id="bioset" style="display:none">👆 Activar huella digital</button>
+  <small id="bionote" style="color:var(--mut);display:block;margin-bottom:8px">Huella digital: disponible solo en la app instalada (APK) y con una huella registrada en tu teléfono.</small>
   <button class="sb" id="slock">🔒 Bloquear ahora</button>
   <h3>💾 Respaldo</h3>
   <small id="slast" style="color:var(--mut);display:block;margin-bottom:8px"></small>
@@ -436,7 +439,7 @@ function showLock(){
   $("lforgot").style.display=setup?"none":"";
   $("lgo").textContent=setup?"Crear acceso":"Entrar";
   $("lforgot").textContent="Olvidé mi contraseña";forgotArmed=false;
-  $("lu").value="";$("lp").value="";$("lp2").value="";$("lmsg").textContent="";
+  $("lu").value="";$("lp").value="";$("lp2").value="";$("lmsg").textContent="";refreshBio();
 }
 function unlock(){$("lock").classList.remove("on");document.querySelector(".wrap").inert=false;$("lp").value="";$("lp2").value=""}
 let forgotArmed=false;
@@ -460,7 +463,7 @@ $("lforgot").onclick=()=>{
 $("setbtn").onclick=()=>{
   $("suser").textContent=AUTH?AUTH.user:"";
   $("slast").textContent=S.lastBackup?"Último respaldo: "+new Date(S.lastBackup).toLocaleString("es"):"Aún no has hecho un respaldo";
-  $("set").showModal();
+  refreshBio();$("set").showModal();
 };
 $("set").onclick=e=>{if(e.target===$("set"))$("set").close()};
 $("slock").onclick=()=>{$("set").close();showLock()};
@@ -493,7 +496,35 @@ $("logout").onclick=()=>{
   document.body.classList.remove("loan");$("loanbtn").textContent="🏦 Préstamos";
   window.scrollTo(0,0);showLock();
 };
+const isNative=()=>{try{return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())}catch(e){return false}};
+let bioOK=false;
+function refreshBio(){
+  const on=!!(AUTH&&AUTH.bio);
+  $("bioset").style.display=bioOK?"":"none";
+  $("bionote").style.display=bioOK?"none":"block";
+  $("bioset").textContent=on?"👆 Huella digital activada (toca para desactivar)":"👆 Activar huella digital";
+  $("lbio").style.display=(on&&bioOK)?"":"none";
+}
+function loadBio(){return new Promise(res=>{const s=document.createElement("script");s.src="bio.js";s.onload=()=>res(true);s.onerror=()=>res(false);document.head.appendChild(s)})}
+async function bioInit(){
+  if(!isNative())return;
+  if(!(await loadBio())||!window.Bio)return;
+  try{const r=await window.Bio.check();bioOK=!!(r&&r.isAvailable)}catch(e){}
+  refreshBio();
+}
+async function tryBio(){
+  try{await window.Bio.auth();unlock()}
+  catch(e){$("lmsg").textContent="Huella no reconocida. Usa tu contraseña o inténtalo de nuevo."}
+}
+$("lbio").onclick=tryBio;
+$("bioset").onclick=async()=>{
+  if(!AUTH.bio){
+    try{await window.Bio.auth();AUTH.bio=true;saveAuth();toast("Huella activada 👆")}catch(e){toast("No se pudo activar la huella")}
+  }else{AUTH.bio=false;saveAuth();toast("Huella desactivada")}
+  refreshBio();
+};
 render();showLock();
+bioInit().then(()=>{if(AUTH&&AUTH.bio&&bioOK&&$("lock").classList.contains("on"))tryBio()});
 </script>
 </body>
 </html>
