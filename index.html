@@ -117,6 +117,9 @@ header{flex-wrap:wrap}
 .sheet h3{font-size:.95rem;margin:18px 0 8px}
 .sheet .sinp{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;margin-bottom:8px}
 .sb{width:100%;padding:12px;border-radius:14px;background:var(--bg);border:1px solid var(--line);font-weight:600;margin-bottom:8px}
+.foot{margin-top:22px;text-align:center;color:var(--mut);font-size:.8rem}
+.foot .sb{max-width:260px;margin:0 auto 12px;display:block}
+.ib.out{background:var(--exp);color:#fff;border-color:var(--exp);font-weight:600}
 </style>
 </head>
 <body>
@@ -124,8 +127,8 @@ header{flex-wrap:wrap}
   <header>
     <h1>💸 FinanzApp</h1>
     <div class="tools"><button class="ib" id="loanbtn">🏦 Préstamos</button>
-      <select id="cur" aria-label="Moneda"><option>EUR</option><option>USD</option><option>MXN</option><option>COP</option><option>ARS</option><option>CLP</option><option>PEN</option></select>
-      <button class="ib" id="theme" aria-label="Cambiar tema">🌓</button><button class="ib" id="setbtn" aria-label="Ajustes">⚙️</button>
+      <select id="cur" aria-label="Moneda"><option>COP</option></select>
+      <button class="ib" id="theme" aria-label="Cambiar tema">🌓</button><button class="ib" id="setbtn" aria-label="Ajustes">⚙️</button><button class="ib out" id="logout" aria-label="Cerrar sesión">🚪 Salir</button>
     </div>
   </header>
   <div class="month"><button id="prev" aria-label="Mes anterior">‹</button><b id="mlabel"></b><button id="next" aria-label="Mes siguiente">›</button></div>
@@ -158,7 +161,7 @@ header{flex-wrap:wrap}
       <div class="ftot"><h2>📌 Gastos fijos mensuales</h2><b id="ftotal">0</b></div>
       <div class="fx">
         <input id="fname" class="w" placeholder="Nombre (alquiler, Netflix…)" maxlength="30">
-        <input id="famt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Importe">
+        <input id="famt" type="text" inputmode="numeric" autocomplete="off" placeholder="Importe">
         <input id="fday" type="number" inputmode="numeric" min="1" max="28" placeholder="Día (1-28)">
         <select id="fcat"></select>
         <button id="fadd">Añadir fijo</button>
@@ -171,7 +174,7 @@ header{flex-wrap:wrap}
 <section class="card" id="loanview">
     <h2>🏦 Cotizador de préstamos</h2>
     <div class="lf">
-      <label>Cantidad<input id="lamt" type="number" inputmode="decimal" min="0" placeholder="10000"></label>
+      <label>Cantidad<input id="lamt" type="text" inputmode="numeric" autocomplete="off" placeholder="10.000.000"></label>
       <label>Interés (%)<input id="lrate" type="number" inputmode="decimal" min="0" step="0.01" placeholder="12"></label>
       <label>Tipo de tasa<select id="ltype"><option value="anual">Anual</option><option value="mensual">Mensual</option></select></label>
       <label>Frecuencia de pago<select id="lfreq"><option value="mensual">Mensual</option><option value="quincenal">Quincenal</option><option value="semanal">Semanal</option></select></label>
@@ -183,6 +186,7 @@ header{flex-wrap:wrap}
     </div>
     <div id="lres"></div>
   </section>
+  <footer class="foot"><small>Miguel Rodriguez Tech 2026 ©</small></footer>
 </div>
 <button class="fab" id="fab" aria-label="Añadir movimiento">+</button>
 <div class="toast" id="toast"></div>
@@ -216,7 +220,7 @@ header{flex-wrap:wrap}
 <dialog id="dlg">
   <div class="sheet">
     <div class="seg" id="seg"><button class="on e" data-t="expense">Gasto</button><button data-t="income">Ingreso</button></div>
-    <input class="big" id="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00">
+    <input class="big" id="amount" type="text" inputmode="numeric" autocomplete="off" placeholder="0">
     <div class="cats" id="cats"></div>
     <div class="f"><input id="desc" placeholder="Descripción (opcional)" maxlength="40"><input id="date" type="date"></div>
     <button class="save" id="save">Guardar</button>
@@ -228,12 +232,13 @@ const CATS={
  expense:[["Vivienda","🏠","#5b4bdb"],["Comida","🍽️","#f59e0b"],["Transporte","🚗","#0ea5e9"],["Ocio","🎉","#ec4899"],["Salud","💊","#10b981"],["Compras","🛍️","#a855f7"],["Servicios","💡","#eab308"],["Deudas","💳","#ef4444"],["Otros","📦","#94a3b8"]],
  income:[["Salario","💼","#12a37a"],["Freelance","💻","#0ea5e9"],["Inversión","📈","#a855f7"],["Regalo","🎁","#ec4899"],["Otros","💰","#94a3b8"]]};
 const $=id=>document.getElementById(id);
-let S={tx:[],fixed:[],loans:[],cur:"EUR",theme:""};
+let S={tx:[],fixed:[],loans:[],cur:"COP",theme:""};
 try{const r=localStorage.getItem("finanzas-v1");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+S.cur="COP";
 const save=()=>{try{localStorage.setItem("finanzas-v1",JSON.stringify(S))}catch(e){}};
 let view=new Date();view.setDate(1);
 let filter="all",type="expense",cat="Vivienda";
-const fmt=n=>{try{return new Intl.NumberFormat("es",{style:"currency",currency:S.cur,maximumFractionDigits:2}).format(n)}catch(e){return n.toFixed(2)}};
+const fmt=n=>{try{return new Intl.NumberFormat("es-CO",{style:"currency",currency:S.cur,maximumFractionDigits:0}).format(Math.round(n))}catch(e){return "$ "+Math.round(n)}};
 const ym=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
 const info=(t,c)=>CATS[t].find(x=>x[0]===c)||CATS[t][CATS[t].length-1];
 const esc=s=>String(s).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]));
@@ -318,7 +323,7 @@ $("seg").onclick=e=>{const b=e.target.closest("button");if(!b)return;type=b.data
 $("cats").onclick=e=>{const b=e.target.closest("button");if(!b)return;cat=b.dataset.c;drawCats()};
 $("dlg").onclick=e=>{if(e.target===$("dlg"))$("dlg").close()};
 $("save").onclick=()=>{
-  const amt=parseFloat($("amount").value);
+  const amt=num($("amount").value);
   if(!(amt>0)){$("amount").focus();toast("Introduce un importe válido");return}
   S.tx.push({id:Date.now(),type,amt,cat,desc:$("desc").value.trim(),date:$("date").value||new Date().toISOString().slice(0,10)});
   save();$("dlg").close();render();toast(type==="income"?"Ingreso añadido 🎉":"Gasto añadido ✅");
@@ -369,7 +374,7 @@ $("loanbtn").onclick=()=>{
 };
 let loanTxt="",loanSched=[];
 $("lcalc").onclick=()=>{
-  const P=parseFloat($("lamt").value),r=parseFloat($("lrate").value||"0"),n=parseInt($("ln").value,10),fq=$("lfreq").value;
+  const P=num($("lamt").value),r=parseFloat($("lrate").value||"0"),n=parseInt($("ln").value,10),fq=$("lfreq").value;
   if(!(P>0)){$("lamt").focus();toast("Introduce la cantidad");return}
   if(!(r>=0)){$("lrate").focus();toast("Interés no válido");return}
   if(!(n>=1&&n<=360)){$("ln").focus();toast("Pagos entre 1 y 360");return}
@@ -403,7 +408,7 @@ $("lclear").onclick=()=>{
 };
 $("llist").onclick=e=>{const d=e.target.closest(".del");if(d){S.loans=S.loans.filter(l=>l.id!=d.dataset.lid);save();render();toast("Préstamo eliminado")}};
 $("fadd").onclick=()=>{
-  const name=$("fname").value.trim(),amt=parseFloat($("famt").value),day=parseInt($("fday").value||"1",10);
+  const name=$("fname").value.trim(),amt=num($("famt").value),day=parseInt($("fday").value||"1",10);
   if(!name){$("fname").focus();toast("Escribe un nombre");return}
   if(!(amt>0)){$("famt").focus();toast("Introduce un importe válido");return}
   S.fixed.push({id:Date.now(),name,amt,day:Math.min(28,Math.max(1,day||1)),cat:$("fcat").value,start:ym(view)});
@@ -450,7 +455,7 @@ $("lgo").onclick=async()=>{
 $("lforgot").onclick=()=>{
   if(!forgotArmed){forgotArmed=true;$("lforgot").textContent="Esto borrará TODOS tus datos. Toca otra vez para confirmar";return}
   try{localStorage.removeItem("finanzas-v1");localStorage.removeItem("finanzas-auth")}catch(e){}
-  S={tx:[],fixed:[],loans:[],cur:"EUR",theme:""};AUTH=null;render();showLock();
+  S={tx:[],fixed:[],loans:[],cur:"COP",theme:""};AUTH=null;render();showLock();
 };
 $("setbtn").onclick=()=>{
   $("suser").textContent=AUTH?AUTH.user:"";
@@ -477,7 +482,16 @@ $("bres").onclick=()=>{
   let o=null;try{o=JSON.parse($("btext").value.trim().replace(/^[^{]*/,""))}catch(e){}
   if(!o||o.app!=="mis-finanzas"||!o.data||!Array.isArray(o.data.tx)){toast("Respaldo no válido");return}
   if(!armed){armed=true;$("bres").textContent="¿Reemplazar tus datos? Toca otra vez";setTimeout(()=>{armed=false;$("bres").textContent="♻️ Restaurar respaldo"},4000);return}
-  S=Object.assign({tx:[],fixed:[],loans:[],cur:"EUR",theme:""},o.data);save();armed=false;$("bres").textContent="♻️ Restaurar respaldo";$("btext").value="";render();toast("Datos restaurados ✅");
+  S=Object.assign({tx:[],fixed:[],loans:[],cur:"COP",theme:""},o.data);S.cur="COP";save();armed=false;$("bres").textContent="♻️ Restaurar respaldo";$("btext").value="";render();toast("Datos restaurados ✅");
+};
+const num=v=>parseInt(String(v).replace(/\D/g,""),10)||0;
+["amount","famt","lamt"].forEach(id=>$(id).addEventListener("input",e=>{
+  const d=e.target.value.replace(/\D/g,"").replace(/^0+(?=\d)/,"");
+  e.target.value=d?d.replace(/\B(?=(\d{3})+(?!\d))/g,"."):"";
+}));
+$("logout").onclick=()=>{
+  document.body.classList.remove("loan");$("loanbtn").textContent="🏦 Préstamos";
+  window.scrollTo(0,0);showLock();
 };
 render();showLock();
 </script>
