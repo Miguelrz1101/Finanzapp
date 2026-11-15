@@ -19,16 +19,31 @@ jobs:
           java-version: 17
       - name: Preparar proyecto
         run: |
-          mkdir www assets
+          sudo apt-get install -y imagemagick
+          mkdir www
           cp index.html www/
-          cp icon-only.png icon-foreground.png icon-background.png assets/
           npm init -y
           npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
-          npm i -D @capacitor/assets
           npx cap init "FinanzApp" com.finanzapp.app --web-dir www
           npx cap add android
-          npx @capacitor/assets generate --android
           npx cap sync android
+      - name: Iconos y nombre
+        run: |
+          R=android/app/src/main/res
+          find $R -name 'ic_launcher*' -delete
+          mkdir -p $R/drawable-nodpi $R/mipmap-anydpi-v26
+          convert icon-background.png -resize 432x432 $R/drawable-nodpi/ic_launcher_bg.png
+          convert icon-foreground.png -resize 432x432 $R/drawable-nodpi/ic_launcher_fg.png
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            mkdir -p $R/mipmap-$n
+            convert icon-only.png -resize ${s}x${s} $R/mipmap-$n/ic_launcher.png
+            convert icon-only.png -resize ${s}x${s} -alpha set \( -size ${s}x${s} xc:none -fill white -draw "circle $((s/2)),$((s/2)) $((s/2)),0" \) -compose DstIn -composite $R/mipmap-$n/ic_launcher_round.png
+          done
+          for f in ic_launcher ic_launcher_round; do
+            printf '%s\n' '<?xml version="1.0" encoding="utf-8"?>' '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">' '  <background android:drawable="@drawable/ic_launcher_bg"/>' '  <foreground android:drawable="@drawable/ic_launcher_fg"/>' '</adaptive-icon>' > $R/mipmap-anydpi-v26/$f.xml
+          done
+          sed -i 's|<string name="app_name">.*</string>|<string name="app_name">FinanzApp</string>|; s|<string name="title_activity_main">.*</string>|<string name="title_activity_main">FinanzApp</string>|' $R/values/strings.xml
       - name: Compilar APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Renombrar
